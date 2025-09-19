@@ -188,29 +188,44 @@ const HexagonBounce: React.FC = () => {
         updateTrail(ball.position);
       }
 
-      // 清空画布
-      ctx.fillStyle = "#0a0a0a";
+      // 清空画布，添加微妙的背景纹理
+      const gradient = ctx.createRadialGradient(
+        canvasRef.current.width / 2,
+        canvasRef.current.height / 2,
+        0,
+        canvasRef.current.width / 2,
+        canvasRef.current.height / 2,
+        Math.max(canvasRef.current.width, canvasRef.current.height) / 2,
+      );
+      gradient.addColorStop(0, "#0f172a");
+      gradient.addColorStop(1, "#020617");
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-      // 绘制轨迹
+      // 绘制增强的轨迹
       if (showTrail && trailRef.current.length > 1) {
-        ctx.strokeStyle = "rgba(59, 130, 246, 0.3)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
 
-        trailRef.current.forEach((point, index) => {
-          if (index === 0) {
-            ctx.moveTo(point.x, point.y);
-          } else {
-            ctx.lineTo(point.x, point.y);
-          }
-        });
+        for (let i = 1; i < trailRef.current.length; i++) {
+          const alpha = (i / trailRef.current.length) * 0.8;
+          const width = (i / trailRef.current.length) * 4 + 1;
 
-        ctx.stroke();
+          ctx.strokeStyle = `rgba(96, 165, 250, ${alpha})`;
+          ctx.lineWidth = width;
+          ctx.beginPath();
+          ctx.moveTo(trailRef.current[i - 1].x, trailRef.current[i - 1].y);
+          ctx.lineTo(trailRef.current[i].x, trailRef.current[i].y);
+          ctx.stroke();
+        }
       }
 
-      // 绘制六边形
+      // 绘制增强的六边形
       const vertices = getHexagonVertices(hexagonRef.current);
+
+      // 六边形外发光效果
+      ctx.shadowColor = "#10b981";
+      ctx.shadowBlur = 20;
       ctx.strokeStyle = "#10b981";
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -226,37 +241,79 @@ const HexagonBounce: React.FC = () => {
       ctx.closePath();
       ctx.stroke();
 
+      // 重置阴影
+      ctx.shadowBlur = 0;
+
+      // 绘制六边形内部的微妙填充
+      ctx.fillStyle = "rgba(16, 185, 129, 0.05)";
+      ctx.fill();
+
       // 绘制六边形中心点
       ctx.fillStyle = "#10b981";
+      ctx.shadowColor = "#10b981";
+      ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.arc(
         hexagonRef.current.center.x,
         hexagonRef.current.center.y,
-        3,
+        4,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // 绘制增强的小球
+      const ball = ballRef.current;
+
+      // 小球外发光效果
+      ctx.shadowColor = "#60a5fa";
+      ctx.shadowBlur = 25;
+
+      // 球体渐变
+      const ballGradient = ctx.createRadialGradient(
+        ball.position.x - ball.radius / 2,
+        ball.position.y - ball.radius / 2,
+        0,
+        ball.position.x,
+        ball.position.y,
+        ball.radius * 1.5,
+      );
+      ballGradient.addColorStop(0, "#93c5fd");
+      ballGradient.addColorStop(0.4, "#60a5fa");
+      ballGradient.addColorStop(0.8, "#3b82f6");
+      ballGradient.addColorStop(1, "#1e40af");
+
+      ctx.fillStyle = ballGradient;
+      ctx.beginPath();
+      ctx.arc(ball.position.x, ball.position.y, ball.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 添加高光效果
+      const highlightGradient = ctx.createRadialGradient(
+        ball.position.x - ball.radius / 3,
+        ball.position.y - ball.radius / 3,
+        0,
+        ball.position.x - ball.radius / 3,
+        ball.position.y - ball.radius / 3,
+        ball.radius / 2,
+      );
+      highlightGradient.addColorStop(0, "rgba(255, 255, 255, 0.8)");
+      highlightGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+      ctx.fillStyle = highlightGradient;
+      ctx.beginPath();
+      ctx.arc(
+        ball.position.x - ball.radius / 3,
+        ball.position.y - ball.radius / 3,
+        ball.radius / 2,
         0,
         Math.PI * 2,
       );
       ctx.fill();
 
-      // 绘制小球
-      const ball = ballRef.current;
-
-      // 球体渐变
-      const gradient = ctx.createRadialGradient(
-        ball.position.x - ball.radius / 3,
-        ball.position.y - ball.radius / 3,
-        0,
-        ball.position.x,
-        ball.position.y,
-        ball.radius,
-      );
-      gradient.addColorStop(0, "#60a5fa");
-      gradient.addColorStop(1, "#3b82f6");
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(ball.position.x, ball.position.y, ball.radius, 0, Math.PI * 2);
-      ctx.fill();
+      // 重置阴影
+      ctx.shadowBlur = 0;
 
       // 继续动画循环
       animationRef.current = requestAnimationFrame(gameLoop);
@@ -315,121 +372,140 @@ const HexagonBounce: React.FC = () => {
   }, [gameLoop]);
 
   return (
-    <div className="flex flex-col items-center gap-6 p-6">
-      <h1 className="text-3xl font-bold text-white">旋转六边形弹跳球</h1>
+    <div className="flex flex-col items-center gap-8 p-6 min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
+          旋转六边形弹跳球
+        </h1>
+        <p className="text-gray-400 text-sm">物理引擎驱动的交互式动画演示</p>
+      </div>
 
       {/* 画布 */}
-      <div className="relative">
+      <div className="relative group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
         <canvas
           ref={canvasRef}
-          className="border border-gray-700 rounded-lg cursor-pointer bg-gray-900"
+          className="relative border border-gray-600/50 rounded-xl cursor-pointer bg-gray-900/90 backdrop-blur-sm shadow-2xl"
           onClick={handleCanvasClick}
         />
       </div>
 
       {/* 控制面板 */}
-      <div className="w-full max-w-3xl bg-gray-800 rounded-lg p-6 space-y-4">
-        <div className="flex gap-4 justify-center">
+      <div className="w-full max-w-4xl bg-gray-800/40 backdrop-blur-md rounded-2xl p-8 space-y-6 border border-gray-700/50 shadow-2xl">
+        <div className="flex gap-4 justify-center flex-wrap">
           <button
             type="button"
             onClick={() => setIsPaused(!isPaused)}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 font-medium"
           >
-            {isPaused ? "继续" : "暂停"}
+            {isPaused ? "▶️ 继续" : "⏸️ 暂停"}
           </button>
           <button
             type="button"
             onClick={resetBall}
-            className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+            className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/25 font-medium"
           >
-            重置小球
+            🔄 重置小球
           </button>
           <button
             type="button"
             onClick={() => setShowTrail(!showTrail)}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 font-medium"
           >
-            {showTrail ? "隐藏轨迹" : "显示轨迹"}
+            {showTrail ? "🌟 隐藏轨迹" : "✨ 显示轨迹"}
           </button>
         </div>
 
         {/* 参数调节 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="text-sm text-gray-300 block">
-            <span className="block mb-1">重力: {physicsParams.gravity}</span>
-            <input
-              type="range"
-              min="0"
-              max="1000"
-              value={physicsParams.gravity}
-              onChange={(e) =>
-                setPhysicsParams({
-                  ...physicsParams,
-                  gravity: Number(e.target.value),
-                })
-              }
-              className="w-full"
-            />
-          </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/30">
+            <label className="text-sm text-gray-200 block">
+              <span className="block mb-3 font-medium text-blue-300">
+                ⚡ 重力: {physicsParams.gravity}
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value={physicsParams.gravity}
+                onChange={(e) =>
+                  setPhysicsParams({
+                    ...physicsParams,
+                    gravity: Number(e.target.value),
+                  })
+                }
+                className="w-full h-2 bg-gray-600/50 rounded-lg appearance-none cursor-pointer slider-thumb"
+              />
+            </label>
+          </div>
 
-          <label className="text-sm text-gray-300 block">
-            <span className="block mb-1">
-              空气摩擦: {physicsParams.airFriction.toFixed(3)}
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="0.1"
-              step="0.001"
-              value={physicsParams.airFriction}
-              onChange={(e) =>
-                setPhysicsParams({
-                  ...physicsParams,
-                  airFriction: Number(e.target.value),
-                })
-              }
-              className="w-full"
-            />
-          </label>
+          <div className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/30">
+            <label className="text-sm text-gray-200 block">
+              <span className="block mb-3 font-medium text-purple-300">
+                💨 空气摩擦: {physicsParams.airFriction.toFixed(3)}
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="0.1"
+                step="0.001"
+                value={physicsParams.airFriction}
+                onChange={(e) =>
+                  setPhysicsParams({
+                    ...physicsParams,
+                    airFriction: Number(e.target.value),
+                  })
+                }
+                className="w-full h-2 bg-gray-600/50 rounded-lg appearance-none cursor-pointer slider-thumb"
+              />
+            </label>
+          </div>
 
-          <label className="text-sm text-gray-300 block">
-            <span className="block mb-1">
-              反弹阻尼: {physicsParams.bounceDamping.toFixed(2)}
-            </span>
-            <input
-              type="range"
-              min="0.5"
-              max="1"
-              step="0.01"
-              value={physicsParams.bounceDamping}
-              onChange={(e) =>
-                setPhysicsParams({
-                  ...physicsParams,
-                  bounceDamping: Number(e.target.value),
-                })
-              }
-              className="w-full"
-            />
-          </label>
+          <div className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/30">
+            <label className="text-sm text-gray-200 block">
+              <span className="block mb-3 font-medium text-emerald-300">
+                🏀 反弹阻尼: {physicsParams.bounceDamping.toFixed(2)}
+              </span>
+              <input
+                type="range"
+                min="0.5"
+                max="1"
+                step="0.01"
+                value={physicsParams.bounceDamping}
+                onChange={(e) =>
+                  setPhysicsParams({
+                    ...physicsParams,
+                    bounceDamping: Number(e.target.value),
+                  })
+                }
+                className="w-full h-2 bg-gray-600/50 rounded-lg appearance-none cursor-pointer slider-thumb"
+              />
+            </label>
+          </div>
 
-          <label className="text-sm text-gray-300 block">
-            <span className="block mb-1">
-              旋转速度: {rotationSpeed.toFixed(2)} rad/s
-            </span>
-            <input
-              type="range"
-              min="-2"
-              max="2"
-              step="0.1"
-              value={rotationSpeed}
-              onChange={(e) => setRotationSpeed(Number(e.target.value))}
-              className="w-full"
-            />
-          </label>
+          <div className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/30">
+            <label className="text-sm text-gray-200 block">
+              <span className="block mb-3 font-medium text-orange-300">
+                🔄 旋转速度: {rotationSpeed.toFixed(2)} rad/s
+              </span>
+              <input
+                type="range"
+                min="-2"
+                max="2"
+                step="0.1"
+                value={rotationSpeed}
+                onChange={(e) => setRotationSpeed(Number(e.target.value))}
+                className="w-full h-2 bg-gray-600/50 rounded-lg appearance-none cursor-pointer slider-thumb"
+              />
+            </label>
+          </div>
         </div>
 
-        <div className="text-sm text-gray-400 text-center">
-          点击画布可以重新设置小球位置
+        <div className="text-sm text-gray-400 text-center p-4 bg-gray-700/20 rounded-xl border border-gray-600/20">
+          <span className="inline-flex items-center gap-2">
+            <span className="text-lg">👆</span>
+            点击画布可以重新设置小球位置
+          </span>
         </div>
       </div>
     </div>
