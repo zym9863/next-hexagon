@@ -1,3 +1,5 @@
+[English Version](./README-EN.md) | [中文版本](./README.md)
+
 # Next Hexagon - 六边形弹跳小球
 
 一个基于 Next.js 的交互式六边形弹跳小球物理模拟游戏。使用 HTML5 Canvas 和自定义物理引擎实现逼真的弹跳效果。
